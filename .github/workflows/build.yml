@@ -13,6 +13,7 @@ jobs:
         with:
           flutter-version: '3.19.0'
           channel: 'stable'
+      - run: flutter create . --project-name fayad_factory --platforms=android
       - name: Configure Google Services Plugin
         run: |
           # Add buildscript with google-services classpath to android/build.gradle if not present
