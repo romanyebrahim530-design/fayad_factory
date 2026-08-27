@@ -38,8 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _login() async {
     setState(() => _isLoading = true);
     try {
-      UserCredential userCredential = await FirebaseAuth.instance
-          .signInWithEmailAndPassword(
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
@@ -58,7 +57,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => HomeScreen(role: role)),
+        MaterialPageRoute(builder: (context) => InventoryScreen(role: role)),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -101,22 +100,59 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-class HomeScreen extends StatelessWidget {
+class InventoryScreen extends StatelessWidget {
   final String role;
-  const HomeScreen({super.key, required this.role});
+  const InventoryScreen({super.key, required this.role});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('لوحة المخزن - الصلاحية: $role')),
-      body: Center(
-        child: Text(
-          role == 'manager'
-              ? 'أهلاً بك يا مدير! لديك صلاحية كاملة لعرض المواد الخام والسيكوريت.'
-              : 'أهلاً بك يا عامل. الأصناف المقيدة مخفية عنك.',
-          style: const TextStyle(fontSize: 18),
-          textAlign: TextAlign.center,
-        ),
+      appBar: AppBar(
+        title: Text('مخزن المصنع (${role == 'manager' ? 'مدير' : 'عامل'})'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () {
+              FirebaseAuth.instance.signOut();
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+              );
+            },
+          ),
+        ],
+      ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance.collection('Inventory').snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return const Center(child: Text('حدث خطأ أثناء جلب البيانات أو أن صلاحيتك لا تسمح برؤية هذه الأصناف.'));
+          }
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final docs = snapshot.data!.docs;
+
+          return ListView.builder(
+            itemCount: docs.length,
+            itemBuilder: (context, index) {
+              var data = docs[index].data() as Map<String, dynamic>;
+              String category = data['category'] ?? '';
+              
+              // تطبيق قاعدة إخفاء المواد الخام والسيكوريت للعمال إضافياً في الواجهة
+              if (role != 'manager' && (category == 'Raw Material' || category == 'Tempered Glass')) {
+                return const SizedBox.shrink();
+              }
+
+              return ListTile(
+                title: Text(data['name'] ?? 'صنف بدون اسم'),
+                subtitle: Text('الفئة: $category'),
+                trailing: Text('الكمية: ${data['quantity'] ?? 0}'),
+              );
+            },
+          );
+        },
       ),
     );
   }
