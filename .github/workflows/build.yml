@@ -13,26 +13,30 @@ jobs:
         with:
           flutter-version: '3.19.0'
           channel: 'stable'
-      - name: Backup google-services.json
-        run: |
-          if [ -f "android/app/google-services.json" ]; then
-            cp android/app/google-services.json ./google-services.json
-          fi
-      - run: flutter create . --project-name fayad_factory --platforms=android
-      - name: Restore google-services.json
+      - name: Ensure google-services.json in place
         run: |
           if [ -f "google-services.json" ]; then
             cp google-services.json android/app/
           fi
-      - name: Configure Google Services Plugin
+      - name: Configure Gradle and Google Services
         run: |
-          if ! grep -q "buildscript" android/build.gradle; then
-            sed -i '1i buildscript {\n    repositories {\n        google()\n        mavenCentral()\n    }\n    dependencies {\n        classpath "com.google.gms:google-services:4.4.2"\n    }\n}\n' android/build.gradle
+          if ! grep -q "com.google.gms:google-services" android/build.gradle; then
+            if grep -q "buildscript {" android/build.gradle; then
+              sed -i '/buildscript {/a \    dependencies {\n        classpath "com.google.gms:google-services:4.4.2"\n    }' android/build.gradle
+            else
+              sed -i '1i buildscript {\n    repositories {\n        google()\n        mavenCentral()\n    }\n    dependencies {\n        classpath "com.google.gms:google-services:4.4.2"\n    }\n}\n' android/build.gradle
+            fi
           fi
+          
           if ! grep -q "google-services" android/app/build.gradle; then
             echo "apply plugin: 'com.google.gms.google-services'" >> android/app/build.gradle
           fi
-          sed -i 's/minSdkVersion.*/minSdkVersion 23/g' android/app/build.gradle
+          
+          if grep -q "minSdkVersion" android/app/build.gradle; then
+            sed -i 's/minSdkVersion.*/minSdkVersion 23/g' android/app/build.gradle
+          else
+            sed -i '/defaultConfig {/a \        minSdkVersion 23' android/app/build.gradle
+          fi
       - run: flutter pub get
       - run: flutter build apk --release
       - uses: actions/upload-artifact@v4
