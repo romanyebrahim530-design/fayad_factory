@@ -13,10 +13,18 @@ jobs:
         with:
           flutter-version: '3.19.0'
           channel: 'stable'
-      - name: Verify google-services.json
+      - name: Verify and Sync google-services.json
         run: |
           if [ -f "android/app/google-services.json" ]; then
-            echo "google-services.json found in android/app/"
+            cp android/app/google-services.json ./google-services.json
+          fi
+          if [ -f "google-services.json" ]; then
+            cp google-services.json android/app/
+            PKG_NAME=$(grep -o '"package_name": "[^"]*"' google-services.json | head -1 | cut -d'"' -f4)
+            echo "Extracted Package Name: $PKG_NAME"
+            if [ ! -z "$PKG_NAME" ]; then
+              sed -i "s/applicationId \".*\"/applicationId \"$PKG_NAME\"/g" android/app/build.gradle
+            fi
           else
             echo "ERROR: google-services.json missing!"
             exit 1
