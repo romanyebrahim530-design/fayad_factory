@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "879261414813",
+    "project_id": "fayyad-glass",
+    "storage_bucket": "fayyad-glass.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:879261414813:android:417c13f49ecaf4c2852b74",
+        "android_client_info": {
+          "package_name": "com.example.fayad_factory"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAH2qw0M2Bp6JgXtciFpK4otSc_0P3mzh4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
