@@ -5,15 +5,37 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  runApp(const FayadFactoryApp());
+  String initError = '';
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    initError = e.toString();
+  }
+  runApp(FayadFactoryApp(error: initError));
 }
 
 class FayadFactoryApp extends StatelessWidget {
-  const FayadFactoryApp({super.key});
+  final String error;
+  const FayadFactoryApp({super.key, required this.error});
 
   @override
   Widget build(BuildContext context) {
+    if (error.isNotEmpty) {
+      return MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Text(
+                'خطأ في بداية التشغيل:\n$error',
+                style: const TextStyle(color: Colors.red, fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     return MaterialApp(
       title: 'Fayad Glass Factory',
       theme: ThemeData(primarySwatch: Colors.blue),
@@ -82,7 +104,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('تسجيل دخول - مصنع فاياد للزجاج')),
+      appBar: AppBar(title: const Text('تسجيل دخول - مصنع فاياد')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -115,46 +137,14 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-class InventoryScreen extends StatefulWidget {
+class InventoryScreen extends StatelessWidget {
   const InventoryScreen({super.key});
-
-  @override
-  State<InventoryScreen> createState() => _InventoryScreenState();
-}
-
-class _InventoryScreenState extends State<InventoryScreen> {
-  String? userRole;
-  bool isLoadingRole = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchUserRole();
-  }
-
-  Future<void> _fetchUserRole() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      final doc = await FirebaseFirestore.instance.collection('Users').doc(user.uid).get();
-      if (doc.exists) {
-        setState(() {
-          userRole = doc.data()?['role'];
-          isLoadingRole = false;
-        });
-      } else {
-        setState(() {
-          userRole = 'worker';
-          isLoadingRole = false;
-        });
-      }
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('مخزن مصنع فاياد (${userRole == 'manager' ? 'مدير' : 'عامل'})'),
+        title: const Text('مخزن مصنع فاياد'),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -162,45 +152,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
           ),
         ],
       ),
-      body: isLoadingRole
-          ? const Center(child: CircularProgressIndicator())
-          : StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('Inventory').snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(child: Text('لا توجد أصناف في المخزن'));
-                }
-
-                final docs = snapshot.data!.docs;
-                final filteredDocs = docs.where((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  final category = data['category'] ?? '';
-                  if (userRole == 'manager') {
-                    return true;
-                  } else {
-                    return ['Raw Material', 'Tempered Glass'].contains(category);
-                  }
-                }).toList();
-
-                if (filteredDocs.isEmpty) {
-                  return const Center(child: Text('لا توجد أصناف مصرح لك برؤيتها'));
-                }
-
-                return ListView.builder(
-                  itemCount: filteredDocs.length,
-                  itemBuilder: (context, index) {
-                    final data = filteredDocs[index].data() as Map<String, dynamic>;
-                    return ListTile(
-                      title: Text(data['name'] ?? 'بدون اسم'),
-                      subtitle: Text('الفئة: ${data['category']} - الكمية: ${data['quantity'] ?? 0}'),
-                    );
-                  },
-                );
-              },
-            ),
+      body: const Center(child: Text('تم تسجيل الدخول بنجاح')),
     );
   }
 }
