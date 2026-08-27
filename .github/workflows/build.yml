@@ -13,13 +13,19 @@ jobs:
         with:
           flutter-version: '3.19.0'
           channel: 'stable'
-      - run: flutter create . --project-name fayad_factory --platforms=android
       - name: Configure Google Services Plugin
         run: |
-          sed -i '/dependencies {/a \    classpath "com.google.gms:google-services:4.4.2"' android/build.gradle
-          echo "apply plugin: 'com.google.gms.google-services'" >> android/app/build.gradle
-      - name: Update minSdk to 23
-        run: |
+          # Add buildscript with google-services classpath to android/build.gradle if not present
+          if ! grep -q "buildscript" android/build.gradle; then
+            sed -i '1i buildscript {\n    repositories {\n        google()\n        mavenCentral()\n    }\n    dependencies {\n        classpath "com.google.gms:google-services:4.4.2"\n    }\n}\n' android/build.gradle
+          fi
+          
+          # Apply plugin at the bottom of android/app/build.gradle
+          if ! grep -q "google-services" android/app/build.gradle; then
+            echo "apply plugin: 'com.google.gms.google-services'" >> android/app/build.gradle
+          fi
+          
+          # Update minSdk to 23
           sed -i 's/minSdkVersion.*/minSdkVersion 23/g' android/app/build.gradle
       - run: flutter pub get
       - run: flutter build apk --release
